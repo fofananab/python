@@ -1,0 +1,47 @@
+import requests
+from bs4 import BeautifulSoup
+
+def get_html_content(url):
+    response = requests.get(url)
+    response.raise_for_status()  # Assure que la requête a réussi
+    return response.text
+def extract_title(html_content):
+    soup = BeautifulSoup(html_content, 'html.parser')
+    title = soup.find('h1', {'id': 'firstHeading'}).text
+    return title
+def extract_paragraphs(html_content):
+    soup = BeautifulSoup(html_content, 'html.parser')
+    content = {}
+
+    # Trouver tous les titres de section
+    headers = soup.find_all(['h2', 'h3', 'h4'])
+    for header in headers:
+        # On récupère le titre de la section
+        title = header.text.strip()
+        # On récupère le prochain paragraphe sous ce titre
+        paragraph = header.find_next_sibling('p')
+        if paragraph:
+            content[title] = paragraph.text.strip()
+
+    return content
+def extract_wikipedia_links(html_content):
+    soup = BeautifulSoup(html_content, 'html.parser')
+    links = set()
+    for link in soup.find_all('a', href=True):
+        href = link['href']
+        if href.startswith('/wiki/') and not href.startswith('/wiki/Wikipedia:'):
+            full_url = f"https://en.wikipedia.org{href}"
+            links.add(full_url)
+    return list(links)
+def analyze_wikipedia_page(url):
+    html_content = get_html_content(url)
+    title = extract_title(html_content)
+    paragraphs = extract_paragraphs(html_content)
+    links = extract_wikipedia_links(html_content)
+    
+    return {
+        'title': title,
+        'paragraphs': paragraphs,
+        'links': links
+    }
+    
